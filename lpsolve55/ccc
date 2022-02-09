@@ -1,6 +1,12 @@
 :
 src='../lp_MDO.c ../shared/commonlib.c ../shared/mmio.c ../shared/myblas.c ../ini.c ../fortify.c ../colamd/colamd.c ../lp_rlp.c ../lp_crash.c ../bfp/bfp_LUSOL/lp_LUSOL.c ../bfp/bfp_LUSOL/LUSOL/lusol.c ../lp_Hash.c ../lp_lib.c ../lp_wlp.c ../lp_matrix.c ../lp_mipbb.c ../lp_MPS.c ../lp_params.c ../lp_presolve.c ../lp_price.c ../lp_pricePSE.c ../lp_report.c ../lp_scale.c ../lp_simplex.c ../lp_SOS.c ../lp_utils.c ../yacc_read.c'
-c=cc
+echo "Using Compiler: ${CC:=gcc}"
+echo "Using Ar: ${AR:=ar}"
+echo "Using Ranlib: ${RANLIB:=ranlib}"
+
+c=$CC
+ar=$AR
+ranlib=$RANLIB
 
 #determine platform (32/64 bit)
 >/tmp/platform.c
@@ -8,8 +14,14 @@ echo '#include <stdlib.h>'>>/tmp/platform.c
 echo '#include <stdio.h>'>>/tmp/platform.c
 echo 'main(){printf("ux%d", (int) (sizeof(void *)*8));}'>>/tmp/platform.c
 $c /tmp/platform.c -o /tmp/platform
-PLATFORM=`/tmp/platform`
-rm /tmp/platform /tmp/platform.c >/dev/null 2>&1
+/tmp/platform >/dev/null 2>&1
+retval=$?
+if [ $retval -ne 0 ]; then
+    PLATFORM=x32
+else
+    PLATFORM=`/tmp/platform`
+fi
+rm -f /tmp/platform /tmp/platform.c >/dev/null 2>&1
 
 mkdir bin bin/$PLATFORM >/dev/null 2>&1
 
@@ -38,8 +50,8 @@ fi
 opts='-O3'
 
 $c -s -c -I.. -I../shared -I../bfp -I../bfp/bfp_LUSOL -I../bfp/bfp_LUSOL/LUSOL -I../colamd $opts $def $NOISNAN -DYY_NEVER_INTERACTIVE -DPARSER_LP -DINVERSE_ACTIVE=INVERSE_LUSOL -DRoleIsExternalInvEngine $src
-ar rv bin/$PLATFORM/liblpsolve55.a `echo $src|sed s/[.]c/.o/g|sed 's/[^ ]*\///g'`
-ranlib bin/$PLATFORM/liblpsolve55.a
+$ar rv bin/$PLATFORM/liblpsolve55.a `echo $src|sed s/[.]c/.o/g|sed 's/[^ ]*\///g'`
+$ranlib bin/$PLATFORM/liblpsolve55.a
 
 if [ "$so" != "" ]
 then
